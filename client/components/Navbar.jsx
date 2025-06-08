@@ -18,6 +18,10 @@ export default function Navbar() {
             LegalAI
           </span>
         </Link>
+        <Link href="/upload" className="hidden md:inline-flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-cyan-400 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
+          <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-600 text-white rounded-md text-base font-bold">↑</span>
+          <span>Upload</span>
+        </Link>
         <Link href="/chatbot" className="hidden md:inline-block text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-cyan-400 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
           Chatbot
         </Link>
