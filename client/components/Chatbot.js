@@ -77,13 +77,13 @@ const Chatbot = () => {
       try {
         const response = await axios.post('http://localhost:5000/api/legal/initialize', {
           answers: newAnswers
-        });
+        }, { withCredentials: true });
         setResponses([{ type: 'bot', content: response.data.message }]);
       } catch (error) {
         console.error("Error initializing chat:", error);
         setResponses([{ 
           type: 'bot', 
-          content: "I apologize, but I'm having trouble connecting to the server. Please try again in a moment." 
+          content: "I apologize, but I'm having trouble connecting to the server. Please try again in a moment.\n" + (error?.response?.data?.error || error.message)
         }]);
       } finally {
         setLoading(false);

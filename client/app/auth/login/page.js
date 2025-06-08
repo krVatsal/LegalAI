@@ -58,7 +58,8 @@ export default function Login() {
       // Store token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
+      // Set token as cookie for server auth
+      document.cookie = `token=${data.token}; path=/;`;
       // Redirect to dashboard
       router.push('/');
     } catch (err) {
@@ -182,4 +183,4 @@ export default function Login() {
       </div>
     </div>
   );
-} 
+}

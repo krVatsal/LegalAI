@@ -18,7 +18,8 @@ export default function AuthCallback() {
     if (token) {
       // Store token
       localStorage.setItem('token', token);
-      
+      // Set token as cookie for server auth
+      document.cookie = `token=${token}; path=/;`;
       // Fetch user data
       fetch('http://localhost:5000/api/auth/me', {
         headers: {
@@ -59,4 +60,4 @@ export default function AuthCallback() {
       </div>
     </div>
   );
-} 
+}
