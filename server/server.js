@@ -11,6 +11,7 @@ import legalGuideRoutes from './routes/legalGuide.js';
 import documentGeneratorRoutes from './routes/documentGenerator.js';
 import authRoutes from './routes/auth.js';
 import { verifyToken } from './middleware/auth.middleware.js';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 const app = express();
@@ -23,8 +24,15 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/legal_ai'
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ],
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 app.use(passport.initialize());
 
 // Serve static files
