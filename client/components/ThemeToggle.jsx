@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from "../components/ui/button"
 import { Bell, BellOff } from 'lucide-react';
 
 const initialState = {
@@ -28,7 +28,7 @@ export function ThemeProvider({
 
   useEffect(() => {
     if (!mounted) return;
-    
+
     const root = window.document.documentElement;
 
     root.classList.remove('light', 'dark');
