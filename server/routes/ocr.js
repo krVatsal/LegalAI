@@ -20,6 +20,16 @@ if (!fs.existsSync(tempDir)) {
  */
 router.post('/upload-single', upload.single('file'), async (req, res) => {
     try {
+        console.log('Single upload - User object:', req.user);
+        console.log('Single upload - User ID:', req.user?.id);
+        
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                success: false,
+                message: 'User authentication required'
+            });
+        }
+        
         if (!req.file) {
             return res.status(400).json({
                 success: false,
@@ -158,6 +168,16 @@ router.post('/upload-single', upload.single('file'), async (req, res) => {
  */
 router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
     try {
+        console.log('Multiple upload - User object:', req.user);
+        console.log('Multiple upload - User ID:', req.user?.id);
+        
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                success: false,
+                message: 'User authentication required'
+            });
+        }
+        
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -189,17 +209,73 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
                 const ocrResult = await OCRService.processFile(localFilePath, file.mimetype);
 
                 let cloudinaryResponse = null;
+                let savedResult = null;
+                const fileId = uuidv4();
+
                 if (ocrResult.success) {
                     // Upload to Cloudinary
                     cloudinaryResponse = await uploadOnCloudinary(localFilePath);
+                    
+                    // Save successful result to database
+                    try {
+                        savedResult = new OCRResult({
+                            fileId: fileId,
+                            userId: req.user.id,
+                            filename: file.filename,
+                            originalName: file.originalname,
+                            fileType: file.mimetype,
+                            fileSize: file.size,
+                            cloudinaryUrl: cloudinaryResponse?.secure_url || null,
+                            extractedText: ocrResult.text,
+                            textStats: {
+                                wordCount: ocrResult.word_count,
+                                characterCount: ocrResult.text_length,
+                                chunkCount: ocrResult.chunk_count
+                            },
+                            chunks: ocrResult.chunks,
+                            processingStatus: 'completed',
+                            error: null
+                        });
+                        
+                        await savedResult.save();
+                        console.log('OCR result saved to database with ID:', fileId);
+                    } catch (dbError) {
+                        console.error('Error saving to database:', dbError);
+                        // Continue with response even if DB save fails
+                    }
                 } else {
+                    // Save failed result to database
+                    try {
+                        savedResult = new OCRResult({
+                            fileId: fileId,
+                            userId: req.user.id,
+                            filename: file.filename,
+                            originalName: file.originalname,
+                            fileType: file.mimetype,
+                            fileSize: file.size,
+                            cloudinaryUrl: null,
+                            extractedText: '',
+                            textStats: {
+                                wordCount: 0,
+                                characterCount: 0,
+                                chunkCount: 0
+                            },
+                            chunks: [],
+                            processingStatus: 'failed',
+                            error: ocrResult.error
+                        });
+                        
+                        await savedResult.save();
+                    } catch (dbError) {
+                        console.error('Error saving failed result to database:', dbError);
+                    }
+                    
                     // Clean up file if OCR failed
                     if (fs.existsSync(localFilePath)) {
                         fs.unlinkSync(localFilePath);
                     }
-                }
-
-                results.push({
+                }                results.push({
+                    fileId: fileId,
                     filename: file.originalname,
                     success: ocrResult.success,
                     fileType: file.mimetype,
@@ -215,7 +291,10 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
                     error: ocrResult.error || null
                 });
 
-            } catch (error) {
+                // Clean up temporary file
+                if (fs.existsSync(localFilePath)) {
+                    fs.unlinkSync(localFilePath);
+                }} catch (error) {
                 console.error(`Error processing file ${file.originalname}:`, error);
                 
                 // Clean up file
@@ -223,7 +302,9 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
                     fs.unlinkSync(localFilePath);
                 }
 
+                const errorFileId = uuidv4();
                 results.push({
+                    fileId: errorFileId,
                     filename: file.originalname,
                     success: false,
                     error: error.message

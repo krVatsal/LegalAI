@@ -77,10 +77,46 @@ const ocrResultSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'processing', 'completed', 'failed'],
         default: 'pending'
-    },
-    error: {
+    },    error: {
         type: String,
         default: null
+    },
+    // Legal Analysis Results
+    legalAnalysis: {
+        analysis: String,
+        analysisType: String,
+        documentType: String,
+        timestamp: Date,
+        wordCount: Number,
+        analysisLength: Number
+    },
+    // Summary Results
+    summaries: {
+        executiveSummary: {
+            content: String,
+            summaryType: String,
+            documentType: String,
+            timestamp: Date,
+            stats: {
+                originalWordCount: Number,
+                summaryWordCount: Number,
+                compressionRatio: Number
+            }
+        },
+        quickSummary: {
+            content: String,
+            summaryType: String,
+            timestamp: Date,
+            stats: {
+                bulletCount: Number
+            }
+        }
+    },
+    // Legal Entity Extraction
+    legalEntities: {
+        entities: String,
+        extractionType: String,
+        timestamp: Date
     }
 }, {
     timestamps: true
