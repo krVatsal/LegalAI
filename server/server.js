@@ -12,8 +12,9 @@ import documentGeneratorRoutes from "./routes/documentGenerator.js";
 import authRoutes from "./routes/auth.js";
 import webSearchRoutes from "./routes/webSearch.js";
 import ocrRoutes from './routes/ocr.js';
-import { verifyToken } from "./middleware/auth.middleware.js";
-import cookieParser from "cookie-parser";
+import legalAnalysisRoutes from './routes/legal.analysis.js';
+import { verifyToken } from './middleware/auth.middleware.js';
+import cookieParser from 'cookie-parser';
 
 dotenv.config(); // Ensure env vars are loaded before anything else
 
@@ -55,6 +56,7 @@ app.use('/api/legal', verifyToken, legalQueryRoutes);
 app.use('/api/guide', verifyToken, legalGuideRoutes);
 app.use('/api/document', verifyToken, documentGeneratorRoutes);
 app.use('/api/ocr', verifyToken, ocrRoutes);
+app.use('/api/analysis', verifyToken, legalAnalysisRoutes);
 
 app.get("/", (req, res) => res.send("Virtual Legal Assistant API running..."));
 

@@ -11,10 +11,12 @@ export const verifyToken = (req, res, next) => {
   }
   if (!token) {
     return res.status(403).json({ message: 'No token provided!' });
-  }
-  try {
+  }  try {
     const decoded = jwt.verify(token.replace('Bearer ', ''), authConfig.jwtSecret);
-    req.user = { _id: decoded.id };
+    req.user = { 
+      _id: decoded.id,
+      id: decoded.id  // Add consistent id property for compatibility
+    };
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Unauthorized!' });
