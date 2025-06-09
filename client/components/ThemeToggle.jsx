@@ -17,11 +17,18 @@ export function ThemeProvider({
   storageKey = 'vite-ui-theme',
   ...props
 }) {
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem(storageKey) || defaultTheme
-  );
+  const [theme, setTheme] = useState(defaultTheme);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    const storedTheme = localStorage.getItem(storageKey) || defaultTheme;
+    setTheme(storedTheme);
+  }, [storageKey, defaultTheme]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     const root = window.document.documentElement;
 
     root.classList.remove('light', 'dark');
@@ -37,12 +44,13 @@ export function ThemeProvider({
     }
 
     root.classList.add(theme);
-  }, [theme]);
-
+  }, [theme, mounted]);
   const value = {
     theme,
     setTheme: (theme) => {
-      localStorage.setItem(storageKey, theme);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, theme);
+      }
       setTheme(theme);
     },
   };
@@ -65,6 +73,24 @@ export const useTheme = () => {
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-9 w-9 p-0"
+      >
+        <Bell className="h-4 w-4" />
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    );
+  }
 
   return (
     <Button

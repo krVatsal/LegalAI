@@ -11,6 +11,7 @@ import legalGuideRoutes from "./routes/legalGuide.js";
 import documentGeneratorRoutes from "./routes/documentGenerator.js";
 import authRoutes from "./routes/auth.js";
 import webSearchRoutes from "./routes/webSearch.js";
+import ocrRoutes from './routes/ocr.js';
 import { verifyToken } from "./middleware/auth.middleware.js";
 import cookieParser from "cookie-parser";
 
@@ -50,9 +51,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/search", webSearchRoutes); // Mount web search routes
 
 // Protected routes
-app.use("/api/legal", verifyToken, legalQueryRoutes);
-app.use("/api/guide", verifyToken, legalGuideRoutes);
-app.use("/api/document", verifyToken, documentGeneratorRoutes);
+app.use('/api/legal', verifyToken, legalQueryRoutes);
+app.use('/api/guide', verifyToken, legalGuideRoutes);
+app.use('/api/document', verifyToken, documentGeneratorRoutes);
+app.use('/api/ocr', verifyToken, ocrRoutes);
 
 app.get("/", (req, res) => res.send("Virtual Legal Assistant API running..."));
 

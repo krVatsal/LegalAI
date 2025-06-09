@@ -53,30 +53,107 @@ export default function UploadPage() {
     const files = Array.from(e.target.files || []);
     processFiles(files);
   }, []);
-
   const processFiles = async (files) => {
     if (files.length === 0) return;
+    
     setIsProcessing(true);
     setUploadProgress(0);
-    const intervals = [10, 30, 50, 70, 90, 100];
-    for (let i = 0; i < intervals.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setUploadProgress(intervals[i]);
+    
+    try {
+      const file = files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Get token for authentication
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to upload files');
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+      
+      // Upload and process with OCR
+      const response = await fetch('http://localhost:5000/api/ocr/upload-single', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+        if (response.ok) {
+        const result = await response.json();
+        
+        const newFile = {
+          id: result.data.fileId || Date.now().toString(),
+          name: file.name,
+          size: formatSize(file.size),
+          type: file.type.includes("pdf") ? "PDF" : "Image",
+          uploadDate: new Date().toISOString().split("T")[0],
+          status: "completed",
+          ocrResult: result.data
+        };
+        
+        setUploadedFiles((prev) => [newFile, ...prev]);
+        
+        // Store OCR result in localStorage for analysis page
+        if (result.data.fileId) {
+          localStorage.setItem(`ocr_${result.data.fileId}`, JSON.stringify(result));
+        }
+        
+        // Redirect to analysis page with the file data
+        setTimeout(() => {
+          router.push(`/analysis?fileId=${result.data.fileId || newFile.id}&fileName=${encodeURIComponent(newFile.name)}`);
+        }, 1000);
+        
+      } else {
+        const errorData = await response.json();
+        console.error('Upload failed:', errorData);
+        alert('Upload failed: ' + (errorData.message || 'Unknown error'));
+        
+        const newFile = {
+          id: Date.now().toString(),
+          name: file.name,
+          size: formatSize(file.size),
+          type: file.type.includes("pdf") ? "PDF" : "Image",
+          uploadDate: new Date().toISOString().split("T")[0],
+          status: "error"
+        };
+        
+        setUploadedFiles((prev) => [newFile, ...prev]);
+      }
+      
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Error uploading file: ' + error.message);
+      
+      const file = files[0];
+      const newFile = {
+        id: Date.now().toString(),
+        name: file.name,
+        size: formatSize(file.size),
+        type: file.type.includes("pdf") ? "PDF" : "Image",
+        uploadDate: new Date().toISOString().split("T")[0],
+        status: "error"
+      };
+      
+      setUploadedFiles((prev) => [newFile, ...prev]);
+    } finally {
+      setIsProcessing(false);
     }
-    const file = files[0];
-    const newFile = {
-      id: Date.now().toString(),
-      name: file.name,
-      size: formatSize(file.size),
-      type: file.type.includes("pdf") ? "PDF" : "Image",
-      uploadDate: new Date().toISOString().split("T")[0],
-      status: "completed",
-    };
-    setUploadedFiles((prev) => [newFile, ...prev]);
-    setIsProcessing(false);
-    setTimeout(() => {
-      router.push("/analysis?fileId=" + newFile.id + "&fileName=" + encodeURIComponent(newFile.name));
-    }, 1000);
   };
 
   const removeFile = (id) => {
