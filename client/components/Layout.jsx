@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Brain, Home, Upload, FileText, Phone } from 'lucide-react';
+import { Brain, Home, Upload, FileText, Phone, FolderOpen } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const pathname = usePathname();
@@ -38,8 +38,7 @@ const Layout = ({ children }) => {
               >
                 <Home className="h-4 w-4" />
                 <span>Home</span>
-              </Link>
-              <Link
+              </Link>              <Link
                 href="/upload"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 ${
                   isActive('/upload') 
@@ -49,6 +48,17 @@ const Layout = ({ children }) => {
               >
                 <Upload className="h-4 w-4" />
                 <span>Upload</span>
+              </Link>
+              <Link
+                href="/uploads"
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 ${
+                  isActive('/uploads') 
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
+                }`}
+              >
+                <FolderOpen className="h-4 w-4" />
+                <span>My Uploads</span>
               </Link>
               <Link
                 href="/docs"

@@ -31,6 +31,8 @@ export default function UploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState(initialFiles);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [uploadSummary, setUploadSummary] = useState(null);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -52,37 +54,56 @@ export default function UploadPage() {
   const handleFileSelect = useCallback((e) => {
     const files = Array.from(e.target.files || []);
     processFiles(files);
-  }, []);
-  const processFiles = async (files) => {
+  }, []);  const processFiles = async (files) => {
     if (files.length === 0) return;
     
     setIsProcessing(true);
     setUploadProgress(0);
-    
-    try {
-      const file = files[0];
-      const formData = new FormData();
-      formData.append('file', file);
-      
+      try {
       // Get token for authentication
       const token = localStorage.getItem('token');
+      console.log('Processing files, token present:', !!token);
+      
       if (!token) {
         alert('Please log in to upload files');
         setIsProcessing(false);
         return;
       }
+
+      // Process multiple files
+      if (files.length === 1) {
+        // Single file upload
+        await processSingleFile(files[0], token);
+      } else {
+        // Multiple file upload
+        await processMultipleFiles(files, token);
+      }
       
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-      
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Error uploading files: ' + error.message);
+    } finally {
+      setIsProcessing(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const processSingleFile = async (file, token) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 200);
+    
+    try {
       // Upload and process with OCR
       const response = await fetch('http://localhost:5000/api/ocr/upload-single', {
         method: 'POST',
@@ -94,7 +115,8 @@ export default function UploadPage() {
       
       clearInterval(progressInterval);
       setUploadProgress(100);
-        if (response.ok) {
+      
+      if (response.ok) {
         const result = await response.json();
         
         const newFile = {
@@ -104,7 +126,8 @@ export default function UploadPage() {
           type: file.type.includes("pdf") ? "PDF" : "Image",
           uploadDate: new Date().toISOString().split("T")[0],
           status: "completed",
-          ocrResult: result.data
+          ocrResult: result.data,
+          summary: generateSummary(result.data.extractedText)
         };
         
         setUploadedFiles((prev) => [newFile, ...prev]);
@@ -118,42 +141,163 @@ export default function UploadPage() {
         setTimeout(() => {
           router.push(`/analysis?fileId=${result.data.fileId || newFile.id}&fileName=${encodeURIComponent(newFile.name)}`);
         }, 1000);
-        
-      } else {
+          } else {
         const errorData = await response.json();
-        console.error('Upload failed:', errorData);
-        alert('Upload failed: ' + (errorData.message || 'Unknown error'));
+        console.error('Single upload failed:', errorData);
         
-        const newFile = {
-          id: Date.now().toString(),
-          name: file.name,
-          size: formatSize(file.size),
-          type: file.type.includes("pdf") ? "PDF" : "Image",
-          uploadDate: new Date().toISOString().split("T")[0],
-          status: "error"
-        };
-        
-        setUploadedFiles((prev) => [newFile, ...prev]);
+        // Check for specific authentication errors
+        if (response.status === 401 || response.status === 403) {
+          alert('Authentication failed. Please log in again.');
+          // Optionally redirect to login
+          // router.push('/auth/login');
+        } else {
+          handleUploadError(file, errorData);
+        }
       }
-      
     } catch (error) {
-      console.error('Error uploading file:', error);
-      alert('Error uploading file: ' + error.message);
-      
-      const file = files[0];
-      const newFile = {
-        id: Date.now().toString(),
-        name: file.name,
-        size: formatSize(file.size),
-        type: file.type.includes("pdf") ? "PDF" : "Image",
-        uploadDate: new Date().toISOString().split("T")[0],
-        status: "error"
-      };
-      
-      setUploadedFiles((prev) => [newFile, ...prev]);
-    } finally {
-      setIsProcessing(false);
+      clearInterval(progressInterval);
+      handleUploadError(file, { message: error.message });
     }
+  };
+  const processMultipleFiles = async (files, token) => {
+    const formData = new FormData();
+    Array.from(files).forEach(file => {
+      formData.append('files', file);
+    });
+    
+    // Simulate progress for multiple files
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 15;
+      });
+    }, 300);
+      try {
+      console.log('Making multiple file upload request with token:', token ? 'present' : 'missing');
+      const response = await fetch('http://localhost:5000/api/ocr/upload-multiple', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      console.log('Multiple upload response status:', response.status);
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Process each file result
+        const newFiles = result.data.results.map((fileResult, index) => ({
+          id: fileResult.fileId || `${Date.now()}-${index}`,
+          name: fileResult.filename,
+          size: formatSize(files[index].size),
+          type: fileResult.fileType?.includes("pdf") ? "PDF" : "Image",
+          uploadDate: new Date().toISOString().split("T")[0],
+          status: fileResult.success ? "completed" : "error",
+          ocrResult: fileResult.success ? fileResult : null,
+          summary: fileResult.success ? generateSummary(fileResult.extractedText) : "Processing failed",
+          error: fileResult.error || null
+        }));
+        
+        setUploadedFiles((prev) => [...newFiles, ...prev]);
+        
+        // Store successful OCR results in localStorage
+        newFiles.forEach(file => {
+          if (file.status === "completed" && file.ocrResult) {
+            localStorage.setItem(`ocr_${file.id}`, JSON.stringify({
+              success: true,
+              data: file.ocrResult
+            }));
+          }
+        });
+        
+        // Show detailed summary of results
+        const successCount = result.data.successfulFiles;
+        const totalCount = result.data.totalFiles;
+        const failedCount = result.data.failedFiles;
+        
+        showUploadSummary(newFiles, successCount, totalCount, failedCount);
+        
+        // Auto-redirect to uploads page if multiple files processed successfully
+        if (successCount > 1) {
+          setTimeout(() => {
+            router.push('/uploads');
+          }, 3000);
+        } else if (successCount === 1) {
+          // If only one file successful, go to analysis
+          const successfulFile = newFiles.find(f => f.status === 'completed');
+          if (successfulFile) {
+            setTimeout(() => {
+              router.push(`/analysis?fileId=${successfulFile.id}&fileName=${encodeURIComponent(successfulFile.name)}`);
+            }, 2000);
+          }
+        }
+          } else {
+        const errorData = await response.json();
+        console.error('Multiple upload failed:', errorData);
+        
+        // Check for specific authentication errors
+        if (response.status === 401 || response.status === 403) {
+          alert('Authentication failed. Please log in again.');
+          // Optionally redirect to login
+          // router.push('/auth/login');
+        } else {
+          alert('Upload failed: ' + (errorData.message || 'Unknown error'));
+        }
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
+      console.error('Error uploading multiple files:', error);
+      alert('Error uploading files: ' + error.message);
+    }
+  };
+
+  const handleUploadError = (file, errorData) => {
+    console.error('Upload failed:', errorData);
+    alert('Upload failed: ' + (errorData.message || 'Unknown error'));
+    
+    const newFile = {
+      id: Date.now().toString(),
+      name: file.name,
+      size: formatSize(file.size),
+      type: file.type.includes("pdf") ? "PDF" : "Image",
+      uploadDate: new Date().toISOString().split("T")[0],
+      status: "error",
+      error: errorData.message || 'Upload failed'
+    };
+    
+    setUploadedFiles((prev) => [newFile, ...prev]);
+  };
+  const generateSummary = (text) => {
+    if (!text || text.length < 50) return "No content extracted";
+    
+    // Simple extractive summary - take first few sentences
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const summary = sentences.slice(0, 2).join('. ').trim();
+    
+    return summary.length > 200 ? summary.substring(0, 200) + '...' : summary + '.';
+  };
+
+  const showUploadSummary = (files, successCount, totalCount, failedCount) => {
+    setUploadSummary({
+      files,
+      successCount,
+      totalCount,
+      failedCount
+    });
+    setShowSummaryModal(true);
+    
+    // Auto-close modal after 5 seconds
+    setTimeout(() => {
+      setShowSummaryModal(false);
+    }, 5000);
   };
 
   const removeFile = (id) => {
@@ -298,10 +442,111 @@ export default function UploadPage() {
                 <span className="font-bold">IMG</span>
                 <span>JPEG, PNG Images</span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">Maximum file size: 10 MB</p>
-            </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">Maximum file size: 10 MB</p>            </div>
           </div>
         </div>
+
+        {/* Upload Summary Modal */}
+        {showSummaryModal && uploadSummary && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Upload Summary
+                  </h3>
+                  <button
+                    onClick={() => setShowSummaryModal(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{uploadSummary.successCount}</div>
+                    <div className="text-sm text-green-700 dark:text-green-300">Successful</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">{uploadSummary.failedCount}</div>
+                    <div className="text-sm text-red-700 dark:text-red-300">Failed</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{uploadSummary.totalCount}</div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">Total</div>
+                  </div>
+                </div>
+
+                {/* File List */}
+                <div className="space-y-3">
+                  {uploadSummary.files.map((file, index) => (
+                    <div key={file.id || index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <span className={`w-3 h-3 rounded-full ${
+                          file.status === 'completed' ? 'bg-green-500' : 
+                          file.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                        }`}></span>
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">{file.name}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {file.type} • {file.size}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm">
+                        {file.status === 'completed' && (
+                          <span className="text-green-600 font-medium">✓ Processed</span>
+                        )}
+                        {file.status === 'error' && (
+                          <span className="text-red-600 font-medium">✗ Failed</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                  {uploadSummary.successCount > 1 && (
+                    <button
+                      onClick={() => {
+                        setShowSummaryModal(false);
+                        router.push('/uploads');
+                      }}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      View All Uploads
+                    </button>
+                  )}
+                  {uploadSummary.successCount === 1 && (
+                    <button
+                      onClick={() => {
+                        const successfulFile = uploadSummary.files.find(f => f.status === 'completed');
+                        if (successfulFile) {
+                          setShowSummaryModal(false);
+                          router.push(`/analysis?fileId=${successfulFile.id}&fileName=${encodeURIComponent(successfulFile.name)}`);
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Analyze Document
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowSummaryModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
