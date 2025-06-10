@@ -127,10 +127,13 @@ export default function AnalysisPage() {
     const [legalAnalysis, setLegalAnalysis] = useState(null);
     const [summaries, setSummaries] = useState(null);
     const [legalEntities, setLegalEntities] = useState(null);
-    const [analysisLoading, setAnalysisLoading] = useState(false);
-    const [summaryLoading, setSummaryLoading] = useState(false);
+    const [analysisLoading, setAnalysisLoading] = useState(false);    const [summaryLoading, setSummaryLoading] = useState(false);
     const [entitiesLoading, setEntitiesLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ocr');
+    
+    // Web Search States
+    const [webSearchResults, setWebSearchResults] = useState(null);
+    const [webSearchLoading, setWebSearchLoading] = useState(false);
 
     const router = useRouter();
 
@@ -329,6 +332,49 @@ export default function AnalysisPage() {
             setError(`Failed to extract legal entities: ${err.message}`);
         } finally {
             setEntitiesLoading(false);
+        }
+    };
+
+    const performWebSearch = async () => {
+        try {
+            setWebSearchLoading(true);
+            
+            if (!extractedText) {
+                setError('No extracted text available for web search');
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/search/search-contracts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    contractText: extractedText.substring(0, 2000) // Limit text to avoid too long requests
+                })
+            });            if (response.ok) {
+                const data = await response.json();
+                console.log('Web search response:', data); // Debug log
+                
+                if (data.success && data.results) {
+                    setWebSearchResults(data.results);
+                    setActiveTab('websearch');
+                } else if (Array.isArray(data)) {
+                    // Handle case where results are returned directly as array
+                    setWebSearchResults(data);
+                    setActiveTab('websearch');
+                } else {
+                    throw new Error(data.error || 'Failed to perform web search');
+                }
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to perform web search');
+            }
+        } catch (err) {
+            console.error('Error performing web search:', err);
+            setError(`Failed to perform web search: ${err.message}`);
+        } finally {
+            setWebSearchLoading(false);
         }
     };
 
@@ -566,7 +612,7 @@ export default function AnalysisPage() {
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                             Available Actions
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                             <button
                                 onClick={performOCRAnalysis}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center justify-center"
@@ -620,9 +666,7 @@ export default function AnalysisPage() {
                                     </svg>
                                 )}
                                 Extract Entities
-                            </button>
-
-                            <button
+                            </button>                            <button
                                 className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center justify-center"
                                 onClick={handleChatWithContract}
                                 disabled={!extractedText}
@@ -632,6 +676,19 @@ export default function AnalysisPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 3H9a2 2 0 00-2 2v4a2 2 0 002 2h6a2 2 0 002-2V5a2 2 0 00-2-2z" />
                                 </svg>
                                 Chat with Contract
+                            </button>                            <button
+                                className="bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white px-4 py-3 rounded-lg transition-colors flex items-center justify-center"
+                                onClick={performWebSearch}
+                                disabled={webSearchLoading || !extractedText}
+                            >
+                                {webSearchLoading ? (
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                ) : (
+                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                )}
+                                Web Search
                             </button>
                         </div>
                     </div>
@@ -679,6 +736,15 @@ export default function AnalysisPage() {
                                     }`}
                                 >
                                     Legal Entities {legalEntities && '✓'}
+                                </button>                                <button
+                                    onClick={() => setActiveTab('websearch')}
+                                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === 'websearch'
+                                            ? 'border-teal-500 text-teal-600 dark:text-teal-400'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                    }`}
+                                >
+                                    Web Search {webSearchResults && '✓'}
                                 </button>
                             </nav>
                         </div>
@@ -1020,6 +1086,64 @@ export default function AnalysisPage() {
                                             <p className="text-gray-600 dark:text-gray-400 mb-4">
                                                 Click "Extract Entities" above to identify key legal entities in the document.
                                             </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Web Search Tab */}
+                            {activeTab === 'websearch' && (
+                                <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                            Web Search Results
+                                        </h2>                        <button
+                            onClick={performWebSearch}
+                            disabled={webSearchLoading}
+                            className="bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                        >
+                            {webSearchLoading ? (
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                            ) : (
+                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            )}
+                            Perform Web Search
+                        </button>
+                                    </div>                                    {webSearchResults ? (
+                                        <div className="space-y-4">
+                                            {webSearchResults.map((result, index) => (
+                                                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                                                            {result.title || `Result ${index + 1}`}
+                                                        </h3>
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                                {result.similarity_score?.toFixed(0) || 'N/A'}% similarity
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-gray-700 dark:text-gray-300 mb-2">
+                                                        {result.explanation || result.snippet || 'No description available'}
+                                                    </p>
+                                                    {result.url && (
+                                                        <a
+                                                            href={result.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                                                        >
+                                                            View Full Document
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center text-gray-500 dark:text-gray-400 py-6">
+                                            No web search results found. Perform a web search to see results here.
                                         </div>
                                     )}
                                 </div>

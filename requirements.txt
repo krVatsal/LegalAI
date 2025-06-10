@@ -1,3 +1,0 @@
-google-generativeai
-requests
-duckduckgo_search
