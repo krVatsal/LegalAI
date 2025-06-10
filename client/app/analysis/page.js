@@ -18,19 +18,27 @@ const FormattedLegalContent = ({ content, mounted }) => {
         if (!text) return '';
 
         // Debug log to see what we're receiving
-        console.log('formatLegalAnalysis received:', typeof text, text);
-
-        // Handle different data structures
+        console.log('formatLegalAnalysis received:', typeof text, text);        // Handle different data structures
         let textString = '';
         if (typeof text === 'string') {
             textString = text;
         } else if (typeof text === 'object' && text !== null) {
-            // Try to extract text from various possible object structures
-            textString = text.analysis || text.summary || text.executiveSummary.content || text.executiveSummary || text.quickSummary || text.entities;
+            // Try to extract text from various possible object structures with proper null checks
+            textString = text.analysis || 
+                        text.summary || 
+                        (text.executiveSummary && typeof text.executiveSummary === 'object' ? text.executiveSummary.content : text.executiveSummary) || 
+                        text.quickSummary || 
+                        text.entities ||
+                        text.content;
 
             // If still not found, try nested structures
             if (!textString && text.data) {
-                textString = text.data.analysis || text.data.summary || text.data.content || text.data.executiveSummary || text.data.quickSummary || text.data.entities;
+                textString = text.data.analysis || 
+                            text.data.summary || 
+                            text.data.content || 
+                            (text.data.executiveSummary && typeof text.data.executiveSummary === 'object' ? text.data.executiveSummary.content : text.data.executiveSummary) || 
+                            text.data.quickSummary || 
+                            text.data.entities;
             }
 
             // If still nothing, stringify the object for debugging
@@ -114,7 +122,7 @@ export default function AnalysisPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMoreChunks, setHasMoreChunks] = useState(false);
     const [loadingChunks, setLoadingChunks] = useState(false);
-
+    const [allUploads, setAllUploads] = useState([]);
     // Legal Analysis States
     const [legalAnalysis, setLegalAnalysis] = useState(null);
     const [summaries, setSummaries] = useState(null);
