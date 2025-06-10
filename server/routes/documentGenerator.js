@@ -20,6 +20,11 @@ router.use('/documents', express.static(documentsDir));
 router.post('/generate', async (req, res) => {
   try {
     const { conversation, answers } = req.body;
+    // Validate input
+    if (!Array.isArray(conversation) || typeof answers !== 'object' || answers === null) {
+      return res.status(400).json({ error: 'Invalid request: conversation must be an array and answers must be an object.' });
+    }
+
     const doc = new PDFDocument();
     const fileName = `legal-consultation-${Date.now()}.pdf`;
     const filePath = path.join(documentsDir, fileName);
@@ -82,7 +87,7 @@ router.post('/generate', async (req, res) => {
 
   } catch (error) {
     console.error('Error generating PDF:', error);
-    res.status(500).json({ error: 'Failed to generate PDF' });
+    res.status(500).json({ error: error.message || 'Failed to generate PDF' });
   }
 });
 

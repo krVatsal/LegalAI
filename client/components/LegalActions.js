@@ -9,12 +9,16 @@ const LegalActions = () => {
 
   const handleProcessSubmit = async () => {
     if (!processName) return;
-
     try {
       const response = await axios.post('http://localhost:5000/api/guide', { processName });
       setGuide(response.data.guide);
     } catch (error) {
-      console.error("Error fetching process guide:", error);
+      let msg = 'Error fetching process guide.';
+      if (error.response && error.response.data && error.response.data.error) {
+        msg = `Guide Error: ${error.response.data.error}`;
+      }
+      console.error(msg, error);
+      setGuide(msg);
     }
   };
 
@@ -26,7 +30,12 @@ const LegalActions = () => {
       });
       window.location.href = response.data.downloadUrl;
     } catch (error) {
-      console.error("Error generating document:", error);
+      let msg = 'Error generating document.';
+      if (error.response && error.response.data && error.response.data.error) {
+        msg = `Document Error: ${error.response.data.error}`;
+      }
+      console.error(msg, error);
+      alert(msg);
     }
   };
 

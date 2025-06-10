@@ -81,7 +81,8 @@ router.post('/ask', async (req, res) => {
       : chat.messages;
     const context = contextMessages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const prompt = `${context}\nAssistant:`;
+    // --- Custom prompt for Indian legal chatbot, markdown, bold headings, points ---
+    const prompt = `You are a professional legal assistant specializing in Indian law.\n\nBased on the following conversation, answer the user's latest question in clear, concise, and legally accurate language.\n\n- Always answer as per Indian law, regardless of the topic (e.g., divorce, public decency, criminal law, etc.).\n- Use bold headings (with **, e.g., **Heading:**) for each section.\n- Present all steps, requirements, or lists as bullet points or numbered points, each on a new line.\n- Remove any unnecessary markdown or asterisks except for headings.\n- Do not include any generic chatbot instructions or example prompts.\n- Always end with: _Note: This is not legal advice. Please consult a qualified advocate in your jurisdiction for specific guidance._\n\nConversation:\n${context}\n\nAssistant:`;
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
