@@ -31,7 +31,7 @@ const showToast = (toast: Toast) => {
       </div>
     `;
     toastContainer.appendChild(toastElement);
-    
+
     setTimeout(() => {
       if (toastElement.parentElement) {
          toastElement.remove();
@@ -43,6 +43,7 @@ const showToast = (toast: Toast) => {
 const WebSearch: React.FC<WebSearchProps> = ({ contractText }) => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+
 
   const handleSearch = async () => {
     if (!contractText || !contractText.trim()) {
@@ -57,7 +58,7 @@ const WebSearch: React.FC<WebSearchProps> = ({ contractText }) => {
     setLoading(true);
     setResults([]); // Clear previous results
     try {
-      const response = await fetch('/api/webSearch/search-contracts', {
+      const response = await fetch('http://localhost:5000/api/search/search-contracts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,7 +67,7 @@ const WebSearch: React.FC<WebSearchProps> = ({ contractText }) => {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         setResults(data.results || []); // Ensure results is an array
         showToast({
