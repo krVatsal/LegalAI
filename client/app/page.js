@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
@@ -232,6 +232,37 @@ function SaaSButton({ children, className, ...props }) {
 }
 
 export default function Home() {
+	useEffect(() => {
+		const btn = document.createElement('button');
+		btn.id = 'floating-chatbot-btn';
+		btn.title = 'Open Chatbot';
+		btn.innerHTML = `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="16" fill="#2563eb"/><path d="M10 22V10h12v12H10zm2-2h8V12h-8v8zm1-7h6v6h-6v-6z" fill="#fff"/></svg>`;
+		btn.style.position = 'fixed';
+		btn.style.bottom = '32px';
+		btn.style.right = '32px';
+		btn.style.width = '64px';
+		btn.style.height = '64px';
+		btn.style.borderRadius = '50%';
+		btn.style.background = 'linear-gradient(135deg,#2563eb 0%,#06b6d4 100%)';
+		btn.style.boxShadow = '0 4px 24px 0 rgba(37,99,235,0.15)';
+		btn.style.display = 'flex';
+		btn.style.alignItems = 'center';
+		btn.style.justifyContent = 'center';
+		btn.style.zIndex = '1000';
+		btn.style.border = 'none';
+		btn.style.cursor = 'pointer';
+		btn.style.transition = 'box-shadow 0.2s';
+		btn.onmouseenter = () => btn.style.boxShadow = '0 8px 32px 0 rgba(37,99,235,0.25)';
+		btn.onmouseleave = () => btn.style.boxShadow = '0 4px 24px 0 rgba(37,99,235,0.15)';
+		btn.onclick = () => window.open('/chatbot', '_blank');
+		if (!document.getElementById('floating-chatbot-btn')) {
+			document.body.appendChild(btn);
+		}
+		return () => {
+			const b = document.getElementById('floating-chatbot-btn');
+			if (b) b.remove();
+		};
+	}, []);
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950">
 			<Navbar />
