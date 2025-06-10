@@ -52,7 +52,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/search", webSearchRoutes); // Mount web search routes
 
 // Protected routes
-app.use('/api/legal', verifyToken, legalQueryRoutes);
+app.use('/api/legal', legalQueryRoutes);
 app.use('/api/guide', verifyToken, legalGuideRoutes);
 app.use('/api/document', verifyToken, documentGeneratorRoutes);
 app.use('/api/ocr', verifyToken, ocrRoutes);

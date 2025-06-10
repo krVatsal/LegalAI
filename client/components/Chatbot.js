@@ -93,11 +93,14 @@ const Chatbot = () => {
           { role: 'system', content: systemPrompt },
           ...history.filter(h => h.role !== 'system')
         ];
-      }
+      }      const token = localStorage.getItem('token');
       const response = await axios.post('http://localhost:5000/api/legal/ask', {
         message: userQuery,
         history
-      }, { withCredentials: true });
+      }, { 
+        withCredentials: true,
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       // Format the bot's response for better readability
       // Format bot responses: if the message contains example prompts, extract and format as bullet points
       const formatBotResponse = (text) => {
