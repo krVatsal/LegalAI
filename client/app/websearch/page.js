@@ -9,16 +9,18 @@ const WebSearchPage = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-4">Web Search</h1>
-        <p className="text-gray-600 mb-8">Search for similar contracts on the web.</p>
+      <div className="max-w-3xl mx-auto px-4 py-12">
+        <h1 className="text-4xl font-extrabold text-blue-900 dark:text-white mb-4">Web Search</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">Search for similar contracts on the web.</p>
         <textarea
-          className="w-full h-64 p-4 border rounded-lg mb-4"
+          className="w-full h-64 p-4 border-2 border-blue-200 dark:border-blue-700 rounded-xl bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Paste your contract text here..."
           value={contractText}
           onChange={(e) => setContractText(e.target.value)}
         />
-        <WebSearch contractText={contractText} />
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-blue-100 dark:border-blue-800">
+          <WebSearch contractText={contractText} />
+        </div>
       </div>
     </Layout>
   );
