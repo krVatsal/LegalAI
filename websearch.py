@@ -250,12 +250,18 @@ class FreeAIContractSearcher:
 
 def main():
     parser = argparse.ArgumentParser(description='Find similar contracts using AI-powered web search.')
-    parser.add_argument('contract_text', type=str, help='The text of the contract to analyze.')
     parser.add_argument('--api_key', type=str, default=None, help='Optional Gemini API key.')
     args = parser.parse_args()
 
+    # Read contract text from stdin to avoid argument length limits
+    contract_text = sys.stdin.read()
+
+    if not contract_text:
+        print(json.dumps({"error": "No contract text provided via stdin"}), file=sys.stderr)
+        sys.exit(1)
+
     searcher = FreeAIContractSearcher(gemini_api_key=args.api_key)
-    results = searcher.find_similar_contracts(args.contract_text)
+    results = searcher.find_similar_contracts(contract_text)
     
     # Output results as JSON to stdout
     print(json.dumps(results))
