@@ -31,6 +31,9 @@ export default function Navbar() {
         <Link href="/websearch" className="hidden md:inline-block text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-cyan-400 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
           Web Search
         </Link>
+        <Link href="/uploads" className="hidden md:inline-block text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-cyan-400 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
+          My Uploads
+        </Link>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
         {!isAuthenticated && (
