@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Layout from '../../components/Layout';
 
 function formatSize(size) {
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
@@ -31,6 +32,7 @@ export default function UploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState(initialFiles);
+  const [allUploads, setAllUploads] = useState([]); // <-- all uploads history
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [uploadSummary, setUploadSummary] = useState(null);
 
@@ -312,243 +314,307 @@ export default function UploadPage() {
     return null;
   };
 
+  // Load all uploads from server/localStorage on mount
+  useEffect(() => {
+    async function loadUploads() {
+      try {
+        // Try to fetch from server first
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const response = await fetch('http://localhost:5000/api/ocr/history?page=1&limit=50', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.data && data.data.results) {
+                const serverUploads = data.data.results.map(result => ({
+                  id: result.fileId,
+                  name: result.originalName,
+                  size: formatSize(result.fileSize),
+                  type: result.fileType?.includes('pdf') ? 'PDF' : 'Image',
+                  uploadDate: new Date(result.createdAt).toISOString().split('T')[0],
+                  status: result.processingStatus || 'completed',
+                  ocrResult: {
+                    extractedText: result.extractedText,
+                    textStats: result.textStats,
+                    chunks: result.chunks
+                  },
+                  summary: generateSummary(result.extractedText),
+                  error: result.error
+                }));
+                setAllUploads(serverUploads);
+                return;
+              }
+            }
+          } catch (e) { /* fallback below */ }
+        }
+        // Fallback to localStorage
+        const localUploads = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('ocr_')) {
+            try {
+              const data = JSON.parse(localStorage.getItem(key));
+              if (data && data.data) {
+                localUploads.push({
+                  id: data.data.fileId || key.replace('ocr_', ''),
+                  name: data.data.filename || 'Unknown file',
+                  size: formatSize(data.data.fileSize || 0),
+                  type: data.data.fileType?.includes('pdf') ? 'PDF' : 'Image',
+                  uploadDate: new Date().toISOString().split('T')[0],
+                  status: 'completed',
+                  ocrResult: data.data,
+                  summary: generateSummary(data.data.extractedText),
+                  error: data.data.error
+                });
+              }
+            } catch (e) {}
+          }
+        }
+        setAllUploads(localUploads);
+      } catch (e) {
+        setAllUploads([]);
+      }
+    }
+    loadUploads();
+  }, []);
+
   return (
-    <div className="min-h-screen py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Upload Your Contract</h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Upload a PDF document or capture an image of your contract for instant AI analysis.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Upload Zone */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
-              <div
-                className={`$${isDragOver ? 'border-blue-500 bg-blue-100/70 dark:bg-blue-900/40' : 'border-dashed border-2 border-gray-300 dark:border-gray-600'} p-12 text-center cursor-pointer transition-all duration-300`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById('file-input')?.click()}
-              >
-                <input
-                  id="file-input"
-                  type="file"
-                  accept=".pdf,image/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  multiple
-                />
-                <div className="mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-white text-3xl">↑</span>
-                  </div>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Drag and drop your files here</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">or click to browse your files</p>
-                <div className="flex flex-wrap justify-center gap-4 mb-6">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-bold">PDF</span>
-                    <span>Documents</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-bold">IMG</span>
-                    <span>Images (JPG, PNG)</span>
-                  </div>
-                </div>
-                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow hover:bg-blue-700 transition">Select Files</button>
-              </div>
-              {/* Camera Option */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-center">
-                  <button className="border border-gray-400 dark:border-gray-600 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition w-full sm:w-auto">
-                    <span className="mr-2">📷</span> Capture with Camera
-                  </button>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Take a photo of your contract document</p>
-                </div>
-              </div>
-              {/* Upload Progress */}
-              {isProcessing && (
-                <div className="mt-6 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Processing your contract...</span>
-                    <span className="text-sm text-blue-700 dark:text-blue-300">{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden mb-2">
-                    <div className="h-2 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-                  </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">OCR extraction and AI analysis in progress</p>
-                </div>
-              )}
-            </div>
+    <Layout>
+      <div className="min-h-screen py-12 bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-950 dark:to-blue-900">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-extrabold text-blue-900 dark:text-white mb-4">Upload Your Contract</h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Upload a PDF document or capture an image of your contract for instant AI analysis.
+            </p>
           </div>
-          {/* Upload History Sidebar */}
-          <div>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="font-bold">PDF</span>
-                <span>Recent Uploads</span>
-              </div>
-              <div className="space-y-4">
-                {uploadedFiles.map((file) => (
-                  <div key={file.id} className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          {getStatusIcon(file.status)}
-                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{file.name}</span>
-                        </div>
-                        <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span>{file.type}</span>
-                          <span>{file.size}</span>
-                          <span>{file.uploadDate}</span>
-                        </div>
-                      </div>
-                      <div className="flex space-x-1 ml-2">
-                        {file.status === 'completed' && (
-                          <button
-                            onClick={() => router.push('/analysis?fileId=' + file.id + '&fileName=' + encodeURIComponent(file.name))}
-                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800"
-                          >
-                            <span className="font-bold">📄</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => removeFile(file.id)}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                        >
-                          <span className="font-bold">✕</span>
-                        </button>
-                      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Upload Zone */}
+            <div className="lg:col-span-2">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 border border-blue-100 dark:border-blue-800">
+                <div
+                  className={`$${isDragOver ? 'border-blue-500 bg-blue-100/70 dark:bg-blue-900/40' : 'border-dashed border-2 border-gray-300 dark:border-gray-600'} p-12 text-center cursor-pointer transition-all duration-300`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('file-input')?.click()}
+                >
+                  <input
+                    id="file-input"
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    multiple
+                  />
+                  <div className="mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <span className="text-white text-3xl">↑</span>
                     </div>
                   </div>
-                ))}
-                {uploadedFiles.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <span className="text-4xl">📄</span>
-                    <p className="text-sm">No uploads yet</p>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Drag and drop your files here</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">or click to browse your files</p>
+                  <div className="flex flex-wrap justify-center gap-4 mb-6">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="font-bold">PDF</span>
+                      <span>Documents</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="font-bold">IMG</span>
+                      <span>Images (JPG, PNG)</span>
+                    </div>
+                  </div>
+                  <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow hover:bg-blue-700 transition">Select Files</button>
+                </div>
+                {/* Camera Option */}
+                <div className="mt-6 pt-6 border-t border-blue-100 dark:border-blue-800">
+                  <div className="text-center">
+                    <button className="border border-blue-400 dark:border-blue-600 px-4 py-2 rounded-lg text-blue-700 dark:text-blue-200 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 transition w-full sm:w-auto">
+                      <span className="mr-2">📷</span> Capture with Camera
+                    </button>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Take a photo of your contract document</p>
+                  </div>
+                </div>
+                {/* Upload Progress */}
+                {isProcessing && (
+                  <div className="mt-6 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Processing your contract...</span>
+                      <span className="text-sm text-blue-700 dark:text-blue-300">{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden mb-2">
+                      <div className="h-2 bg-blue-600 dark:bg-blue-400 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">OCR extraction and AI analysis in progress</p>
                   </div>
                 )}
               </div>
             </div>
-            {/* Supported Formats */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-4 border border-gray-200 dark:border-gray-700 mt-6">
-              <div className="text-sm font-bold mb-2">Supported Formats</div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                <span className="font-bold">PDF</span>
-                <span>Documents</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                <span className="font-bold">IMG</span>
-                <span>JPEG, PNG Images</span>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">Maximum file size: 10 MB</p>            </div>
-          </div>
-        </div>
-
-        {/* Upload Summary Modal */}
-        {showSummaryModal && uploadSummary && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Upload Summary
-                  </h3>
-                  <button
-                    onClick={() => setShowSummaryModal(false)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    ✕
-                  </button>
+            {/* Upload History Sidebar */}
+            <div>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-4 border border-blue-100 dark:border-blue-800">
+                <div className="flex items-center space-x-2 mb-4">
+                  <span className="font-bold">PDF</span>
+                  <span>Recent Uploads</span>
                 </div>
-              </div>
-
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{uploadSummary.successCount}</div>
-                    <div className="text-sm text-green-700 dark:text-green-300">Successful</div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">{uploadSummary.failedCount}</div>
-                    <div className="text-sm text-red-700 dark:text-red-300">Failed</div>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{uploadSummary.totalCount}</div>
-                    <div className="text-sm text-blue-700 dark:text-blue-300">Total</div>
-                  </div>
-                </div>
-
-                {/* File List */}
-                <div className="space-y-3">
-                  {uploadSummary.files.map((file, index) => (
-                    <div key={file.id || index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <span className={`w-3 h-3 rounded-full ${
-                          file.status === 'completed' ? 'bg-green-500' :
-                          file.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
-                        }`}></span>
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-white">{file.name}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {file.type} • {file.size}
+                <div className="space-y-4">
+                  {allUploads.length > 0 ? allUploads.map((file) => (
+                    <div key={file.id} className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            {getStatusIcon(file.status)}
+                            <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{file.name}</span>
+                          </div>
+                          <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span>{file.type}</span>
+                            <span>{file.size}</span>
+                            <span>{file.uploadDate}</span>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-sm">
-                        {file.status === 'completed' && (
-                          <span className="text-green-600 font-medium">✓ Processed</span>
-                        )}
-                        {file.status === 'error' && (
-                          <span className="text-red-600 font-medium">✗ Failed</span>
-                        )}
+                        <div className="flex space-x-1 ml-2">
+                          {file.status === 'completed' && (
+                            <button
+                              onClick={() => router.push('/analysis?fileId=' + file.id + '&fileName=' + encodeURIComponent(file.name))}
+                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800"
+                            >
+                              <span className="font-bold">📄</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <span className="text-4xl">📄</span>
+                      <p className="text-sm">No uploads yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Supported Formats */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-4 border border-blue-100 dark:border-blue-800 mt-6">
+                <div className="text-sm font-bold mb-2">Supported Formats</div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-bold">PDF</span>
+                  <span>Documents</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-bold">IMG</span>
+                  <span>JPEG, PNG Images</span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">Maximum file size: 10 MB</p>            </div>
+            </div>
+          </div>
+
+          {/* Upload Summary Modal */}
+          {showSummaryModal && uploadSummary && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      Upload Summary
+                    </h3>
+                    <button
+                      onClick={() => setShowSummaryModal(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
 
-                {/* Actions */}
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                  {uploadSummary.successCount > 1 && (
-                    <button
-                      onClick={() => {
-                        setShowSummaryModal(false);
-                        router.push('/uploads');
-                      }}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      View All Uploads
-                    </button>
-                  )}
-                  {uploadSummary.successCount === 1 && (
-                    <button
-                      onClick={() => {
-                        const successfulFile = uploadSummary.files.find(f => f.status === 'completed');
-                        if (successfulFile) {
+                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{uploadSummary.successCount}</div>
+                      <div className="text-sm text-green-700 dark:text-green-300">Successful</div>
+                    </div>
+                    <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">{uploadSummary.failedCount}</div>
+                      <div className="text-sm text-red-700 dark:text-red-300">Failed</div>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{uploadSummary.totalCount}</div>
+                      <div className="text-sm text-blue-700 dark:text-blue-300">Total</div>
+                    </div>
+                  </div>
+
+                  {/* File List */}
+                  <div className="space-y-3">
+                    {uploadSummary.files.map((file, index) => (
+                      <div key={file.id || index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <span className={`w-3 h-3 rounded-full ${
+                            file.status === 'completed' ? 'bg-green-500' :
+                            file.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                          }`}></span>
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-white">{file.name}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {file.type} • {file.size}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-sm">
+                          {file.status === 'completed' && (
+                            <span className="text-green-600 font-medium">✓ Processed</span>
+                          )}
+                          {file.status === 'error' && (
+                            <span className="text-red-600 font-medium">✗ Failed</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                    {uploadSummary.successCount > 1 && (
+                      <button
+                        onClick={() => {
                           setShowSummaryModal(false);
-                          router.push(`/analysis?fileId=${successfulFile.id}&fileName=${encodeURIComponent(successfulFile.name)}`);
-                        }
-                      }}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                          router.push('/uploads');
+                        }}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        View All Uploads
+                      </button>
+                    )}
+                    {uploadSummary.successCount === 1 && (
+                      <button
+                        onClick={() => {
+                          const successfulFile = uploadSummary.files.find(f => f.status === 'completed');
+                          if (successfulFile) {
+                            setShowSummaryModal(false);
+                            router.push(`/analysis?fileId=${successfulFile.id}&fileName=${encodeURIComponent(successfulFile.name)}`);
+                          }
+                        }}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        Analyze Document
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowSummaryModal(false)}
+                      className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
                     >
-                      Analyze Document
+                      Close
                     </button>
-                  )}
-                  <button
-                    onClick={() => setShowSummaryModal(false)}
-                    className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-                  >
-                    Close
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 }
