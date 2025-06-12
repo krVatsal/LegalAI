@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/legal_ai
+      - PORT=5000
+    depends_on:
+      - mongo
+    volumes:
+      - ./public/documents:/app/public/documents
+      - ./public/temp:/app/public/temp
+    restart: unless-stopped
+    networks:
+      - legal-ai-network
+
+  mongo:
+    image: mongo:7.0-jammy
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: legal_ai
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - legal-ai-network
+
+volumes:
+  mongo_data:
+
+networks:
+  legal-ai-network:
+    driver: bridge

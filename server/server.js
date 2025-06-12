@@ -60,6 +60,16 @@ app.use('/api/analysis', verifyToken, legalAnalysisRoutes);
 
 app.get("/", (req, res) => res.send("Virtual Legal Assistant API running..."));
 
+// Health check endpoint for Docker
+app.get("/health", (req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`Server running on http://localhost:${PORT}`)
