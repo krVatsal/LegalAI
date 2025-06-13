@@ -20,6 +20,7 @@ jobs:
         run: docker build -f ./server/DockerFile -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ secrets.AZURE_WEBAPP_NAME }}:${{ github.sha }} ./server
 
 
+
       - name: Push Docker image
         run: docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ secrets.AZURE_WEBAPP_NAME }}:${{ github.sha }}
 
