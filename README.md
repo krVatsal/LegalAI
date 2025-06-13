@@ -2,6 +2,7 @@
   <img src="client/public/cyfuture.png" alt="Cyfuture Logo" width="180"/>
 </p>
 
+
 # Legal AI Contract Intelligence Platform
 
 **Project developed for the Cyfuture AI Hackathon**
