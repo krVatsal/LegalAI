@@ -3,7 +3,7 @@ name: Build and Deploy Docker App to Azure Web App
 on:
   push:
     branches:
-      - main # or your deployment branch
+      - main
 
 jobs:
   build-and-deploy:
@@ -13,13 +13,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Log in to container registry
         run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.AZURE_CONTAINER_REGISTRY }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
       - name: Build Docker image
         run: docker build -f ./server/DockerFile -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ secrets.AZURE_WEBAPP_NAME }}:${{ github.sha }} ./server
-
-
 
       - name: Push Docker image
         run: docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ secrets.AZURE_WEBAPP_NAME }}:${{ github.sha }}
