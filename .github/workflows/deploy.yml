@@ -22,7 +22,8 @@ jobs:
         run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.AZURE_CONTAINER_REGISTRY }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
       - name: Build Docker image
-        run: docker build -f ./server/DockerFile -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ secrets.AZURE_WEBAPP_NAME }}:${{ github.sha }} ./server
+        run: docker build -f ./server/DockerFile -t ${{ secrets.AZURE_CONTAINER_REGISTRY | toLower }}/${{ secrets.AZURE_WEBAPP_NAME | toLower }}:${{ github.sha }} ./server
+
 
       - name: Push Docker image
         run: docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/${{ secrets.AZURE_WEBAPP_NAME }}:${{ github.sha }}
