@@ -21,7 +21,7 @@ export default function AuthCallback() {
       // Set token as cookie for server auth
       document.cookie = `token=${token}; path=/;`;
       // Fetch user data
-      fetch('http://localhost:5000/api/auth/me', {
+      fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

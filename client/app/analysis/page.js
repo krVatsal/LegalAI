@@ -145,7 +145,7 @@ export default function AnalysisPage() {
             const token = localStorage.getItem('token');
             if (token) {
               try {
-                const response = await fetch('http://localhost:5000/api/ocr/history?page=1&limit=50', {
+                const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/ocr/history?page=1&limit=50', {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -206,7 +206,7 @@ export default function AnalysisPage() {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await fetch(`http://localhost:5000/api/analysis/results/${fileId}`, {
+            const response = await fetch(`https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/analysis/results/${fileId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -235,7 +235,7 @@ export default function AnalysisPage() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/analysis/analyze/${fileId}`, {
+            const response = await fetch(`https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/analysis/analyze/${fileId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -270,7 +270,7 @@ export default function AnalysisPage() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/analysis/summary/${fileId}`, {
+            const response = await fetch(`https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/analysis/summary/${fileId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -309,7 +309,7 @@ export default function AnalysisPage() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/analysis/entities/${fileId}`, {
+            const response = await fetch(`https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/analysis/entities/${fileId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -344,7 +344,7 @@ export default function AnalysisPage() {
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/search/search-contracts', {
+            const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/search/search-contracts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -401,7 +401,7 @@ export default function AnalysisPage() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/ocr/result/${fileId}`, {
+            const response = await fetch(`https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/ocr/result/${fileId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -464,7 +464,7 @@ export default function AnalysisPage() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/ocr/chunks/${fileId}?page=${currentPage + 1}&limit=10`, {
+            const response = await fetch(`https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/ocr/chunks/${fileId}?page=${currentPage + 1}&limit=10`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -517,7 +517,7 @@ export default function AnalysisPage() {
     // Utility function to download PDF from backend
     const downloadPDF = (content, fileName, type = 'analysis') => {
         const token = localStorage.getItem('token');
-        fetch('http://localhost:5000/api/document/generate-pdf', {
+        fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/document/generate-pdf', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

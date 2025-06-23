@@ -17,7 +17,7 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+      const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -43,7 +43,7 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp })
@@ -76,7 +76,7 @@ export default function Login() {
     const top = window.screenY + (window.outerHeight - height) / 2;
     
     window.open(
-      'http://localhost:5000/api/auth/google',
+      'https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/auth/google',
       'Google Login',
       `width=${width},height=${height},left=${left},top=${top}`
     );

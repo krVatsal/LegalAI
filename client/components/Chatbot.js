@@ -36,7 +36,7 @@ const Chatbot = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/document/generate', {
+      const response = await axios.post('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/document/generate', {
         conversation,
         answers: {} // Always send an object to avoid backend errors
       }, {
@@ -45,7 +45,7 @@ const Chatbot = () => {
       
       // Create a temporary link to download the PDF
       const link = document.createElement('a');
-      link.href = `http://localhost:5000${response.data.pdfUrl}`;
+      link.href = `https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net${response.data.pdfUrl}`;
       link.target = '_blank';
       link.download = `legal-consultation-${Date.now()}.pdf`;
       document.body.appendChild(link);
@@ -94,7 +94,7 @@ const Chatbot = () => {
           ...history.filter(h => h.role !== 'system')
         ];
       }      const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/legal/ask', {
+      const response = await axios.post('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/legal/ask', {
         message: userQuery,
         history
       }, { 

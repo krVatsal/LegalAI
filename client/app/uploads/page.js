@@ -24,7 +24,7 @@ export default function UploadsPage() {
       if (token) {
         try {
           console.log('Fetching from server...');
-          const response = await fetch('http://localhost:5000/api/ocr/history?page=1&limit=50', {
+          const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/ocr/history?page=1&limit=50', {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
