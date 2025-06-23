@@ -32,7 +32,7 @@ mongoose
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000", "https://victorious-rock-0a4ad4800.2.azurestaticapps.net"],
     credentials: true,
   })
 );

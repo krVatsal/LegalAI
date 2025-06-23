@@ -10,7 +10,7 @@ const LegalActions = () => {
   const handleProcessSubmit = async () => {
     if (!processName) return;
     try {
-      const response = await axios.post('http://localhost:5000/api/guide', { processName });
+      const response = await axios.post('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/guide', { processName });
       setGuide(response.data.guide);
     } catch (error) {
       let msg = 'Error fetching process guide.';
@@ -24,7 +24,7 @@ const LegalActions = () => {
 
   const handleDocumentGeneration = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/api/document/generate', {
+      const response = await axios.post('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/document/generate', {
         documentType,
         formData,
       });

@@ -58,7 +58,7 @@ const WebSearch: React.FC<WebSearchProps> = ({ contractText }) => {
     setLoading(true);
     setResults([]); // Clear previous results
     try {
-      const response = await fetch('http://localhost:5000/api/search/search-contracts', {
+      const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/search/search-contracts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

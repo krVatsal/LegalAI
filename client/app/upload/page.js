@@ -108,7 +108,7 @@ export default function UploadPage() {
 
     try {
       // Upload and process with OCR
-      const response = await fetch('http://localhost:5000/api/ocr/upload-single', {
+      const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/ocr/upload-single', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -180,7 +180,7 @@ export default function UploadPage() {
     }, 300);
       try {
       console.log('Making multiple file upload request with token:', token ? 'present' : 'missing');
-      const response = await fetch('http://localhost:5000/api/ocr/upload-multiple', {
+      const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/ocr/upload-multiple', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -322,7 +322,7 @@ export default function UploadPage() {
         const token = localStorage.getItem('token');
         if (token) {
           try {
-            const response = await fetch('http://localhost:5000/api/ocr/history?page=1&limit=50', {
+            const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/ocr/history?page=1&limit=50', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
