@@ -61,7 +61,7 @@ export default function Login() {
       // Set token as cookie for server auth
       document.cookie = `token=${data.token}; path=/;`;
       // Redirect to dashboard
-      router.push('/');
+      router.push('./verify');
     } catch (err) {
       setError(err.message);
     } finally {
