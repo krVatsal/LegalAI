@@ -1,0 +1,3 @@
+[submodule "web-search"]
+	path = web-search
+	url = https://github.com/abhigit-saha/mcp-legal-search
