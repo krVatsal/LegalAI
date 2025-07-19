@@ -344,27 +344,26 @@ export default function AnalysisPage() {
                 return;
             }
 
-            const response = await fetch('https://legalai-backend-atdugxa9h3g0dbbg.centralindia-01.azurewebsites.net/api/search/search-contracts', {
+            const response = await fetch('https://mcp-legal-search.onrender.com/api/legal/analyze', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
                 body: JSON.stringify({ 
-                    contractText: extractedText.substring(0, 2000) // Limit text to avoid too long requests
+                    contract_text: extractedText.substring(0, 2000) // Limit text to avoid too long requests
                 })
-            });            if (response.ok) {
+            });
+
+            if (response.ok) {
                 const data = await response.json();
                 console.log('Web search response:', data); // Debug log
                 
-                if (data.success && data.results) {
-                    setWebSearchResults(data.results);
-                    setActiveTab('websearch');
-                } else if (Array.isArray(data)) {
-                    // Handle case where results are returned directly as array
+                if (data && (data.similar_contracts || data.analysis)) {
                     setWebSearchResults(data);
                     setActiveTab('websearch');
                 } else {
-                    throw new Error(data.error || 'Failed to perform web search');
+                    throw new Error('Invalid response format from web search API');
                 }
             } else {
                 const errorData = await response.json();
@@ -1112,34 +1111,127 @@ export default function AnalysisPage() {
                             Perform Web Search
                         </button>
                                     </div>                                    {webSearchResults ? (
-                                        <div className="space-y-4">
-                                            {webSearchResults.map((result, index) => (
-                                                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                                                            {result.title || `Result ${index + 1}`}
-                                                        </h3>
-                                                        <div className="flex items-center space-x-2">
-                                                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                                                {result.similarity_score?.toFixed(0) || 'N/A'}% similarity
-                                                            </span>
+                                        <div className="space-y-6">
+                                            {/* Analysis Section */}
+                                            {webSearchResults.analysis && (
+                                                <div className="bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                                        Contract Analysis
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Contract Type:</p>
+                                                            <p className="text-gray-900 dark:text-white">{webSearchResults.analysis.contract_type || 'Not specified'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Location:</p>
+                                                            <p className="text-gray-900 dark:text-white">{webSearchResults.analysis.location || 'Not specified'}</p>
+                                                        </div>
+                                                        <div className="md:col-span-2">
+                                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Subject Matter:</p>
+                                                            <p className="text-gray-900 dark:text-white">{webSearchResults.analysis.subject_matter || 'Not specified'}</p>
+                                                        </div>
+                                                        <div className="md:col-span-2">
+                                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Jurisdiction:</p>
+                                                            <p className="text-gray-900 dark:text-white">{webSearchResults.analysis.jurisdiction || 'Not specified'}</p>
                                                         </div>
                                                     </div>
-                                                    <p className="text-gray-700 dark:text-gray-300 mb-2">
-                                                        {result.explanation || result.snippet || 'No description available'}
-                                                    </p>
-                                                    {result.url && (
-                                                        <a
-                                                            href={result.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                                                        >
-                                                            View Full Document
-                                                        </a>
+                                                    
+                                                    {webSearchResults.analysis.key_terms && webSearchResults.analysis.key_terms.length > 0 && (
+                                                        <div className="mb-4">
+                                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Key Terms:</p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {webSearchResults.analysis.key_terms.map((term, index) => (
+                                                                    <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">
+                                                                        {term}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {webSearchResults.analysis.parties && webSearchResults.analysis.parties.length > 0 && (
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Parties:</p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {webSearchResults.analysis.parties.map((party, index) => (
+                                                                    <span key={index} className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full">
+                                                                        {party}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     )}
                                                 </div>
-                                            ))}
+                                            )}
+                                            
+                                            {/* Similar Contracts Section */}
+                                            {webSearchResults.similar_contracts && webSearchResults.similar_contracts.length > 0 && (
+                                                <>
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                        Similar Contracts ({webSearchResults.similar_contracts.length})
+                                                    </h3>
+                                                    <div className="space-y-4">
+                                                        {webSearchResults.similar_contracts.map((contract, index) => (
+                                                            <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <h4 className="text-md font-medium text-gray-900 dark:text-white flex-1 mr-3">
+                                                                        {contract.title || 'Untitled Contract'}
+                                                                    </h4>
+                                                                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                                                        contract.relevance_score?.toLowerCase() === 'high' 
+                                                                            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                                                                            : contract.relevance_score?.toLowerCase() === 'medium'
+                                                                            ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                                                                            : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                                                                    }`}>
+                                                                        {contract.relevance_score || 'Unknown'} Relevance
+                                                                    </span>
+                                                                </div>
+                                                                
+                                                                <p className="text-gray-700 dark:text-gray-300 mb-3 text-sm leading-relaxed">
+                                                                    {contract.snippet || 'No preview available'}
+                                                                </p>
+                                                                
+                                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 text-sm">
+                                                                    <div>
+                                                                        <p className="font-medium text-gray-600 dark:text-gray-400">Type:</p>
+                                                                        <p className="text-gray-900 dark:text-white">{contract.contract_type || 'N/A'}</p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium text-gray-600 dark:text-gray-400">Source:</p>
+                                                                        <p className="text-gray-900 dark:text-white">{contract.source || 'N/A'}</p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium text-gray-600 dark:text-gray-400">Domain:</p>
+                                                                        <p className="text-gray-900 dark:text-white">{contract.domain || 'N/A'}</p>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {contract.url && (
+                                                                    <a
+                                                                        href={contract.url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center px-3 py-2 bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg text-sm font-medium transition-colors"
+                                                                    >
+                                                                        📄 {contract.clickable_description || 'View Document'}
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                            
+                                            {webSearchResults.similar_contracts && webSearchResults.similar_contracts.length === 0 && (
+                                                <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                                                    <div className="text-gray-500 dark:text-gray-400">
+                                                        <p className="text-lg mb-2">No similar contracts found</p>
+                                                        <p className="text-sm">Try refining your contract text or search terms</p>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="text-center text-gray-500 dark:text-gray-400 py-6">
