@@ -37,7 +37,7 @@ export default function AuthCallback() {
         .then(data => {
           if (data.user) {
             localStorage.setItem('user', JSON.stringify(data.user));
-            router.push('/verify');
+            router.push('/auth/verify');
           } else {
             throw new Error('Invalid user data received');
           }
