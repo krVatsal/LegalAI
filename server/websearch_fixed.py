@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from groq import Groq
 import requests
 import json
 from duckduckgo_search import DDGS
@@ -10,14 +10,14 @@ import sys
 load_dotenv()  # Load environment variables from .env file
 
 class FreeAIContractSearcher:
-    def __init__(self, gemini_api_key=None):
-        # Configure Gemini (free tier)
-        if gemini_api_key:
-            genai.configure(api_key=gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash-preview-05-20')
+    def __init__(self, groq_api_key=None):
+        # Configure Groq
+        if groq_api_key:
+            self.client = Groq(api_key=groq_api_key)
+            self.model_name = "llama-3.3-70b-versatile"
         else:
             # Fallback to local models
-            self.model = None
+            self.client = None
 
         self.ddg = DDGS()
 
@@ -57,10 +57,13 @@ class FreeAIContractSearcher:
         """
 
         try:
-            if self.model:
-                # Use Gemini Flash (free)
-                response = self.model.generate_content(prompt)
-                result = response.text
+            if self.client:
+                # Use Groq
+                response = self.client.chat.completions.create(
+                    messages=[{"role": "user", "content": prompt}],
+                    model=self.model_name
+                )
+                result = response.choices[0].message.content
             else:
                 # Fallback to pattern matching if no API
                 result = self.basic_contract_analysis(contract_text)
@@ -194,9 +197,12 @@ class FreeAIContractSearcher:
             """
 
             try:
-                if self.model:
-                    response = self.model.generate_content(ranking_prompt)
-                    result_text = response.text
+                if self.client:
+                    response = self.client.chat.completions.create(
+                        messages=[{"role": "user", "content": ranking_prompt}],
+                        model=self.model_name
+                    )
+                    result_text = response.choices[0].message.content
 
                     # Extract JSON
                     json_start = result_text.find('[')
@@ -251,9 +257,9 @@ class FreeAIContractSearcher:
 
 
 def main():
-    # Initialize with free Gemini API key (optional)
-    gemini_key = os.getenv('GEMINI_API_KEY')
-    searcher = FreeAIContractSearcher(gemini_key)
+    # Initialize with Groq API key (optional)
+    groq_key = os.getenv('GROQ_API_KEY')
+    searcher = FreeAIContractSearcher(groq_key)
 
     # Read contract text from stdin
     contract_text = sys.stdin.read().strip()

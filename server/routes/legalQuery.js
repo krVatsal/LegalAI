@@ -1,12 +1,12 @@
 // routes/legalQuery.js
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 import ChatMessage from '../models/ChatMessage.js';
 dotenv.config();
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Get previous chats for a user
 router.get('/history', async (req, res) => {
@@ -44,11 +44,12 @@ router.post('/initialize', async (req, res) => {
       return res.status(400).json({ error: 'Answers are required' });
     }
     
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const prompt = `Based on the following initial answers from a user seeking legal assistance, provide a welcoming message and ask a relevant follow-up question:\nType of legal assistance: ${answers[1]}\nCase status: ${answers[2]}\nPreferred language: ${answers[3]}`;
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const result = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+    });
+    const text = result.choices[0]?.message?.content || "";
     
     // Store the first assistant message only if user is authenticated
     if (req.user) {
@@ -99,11 +100,12 @@ router.post('/ask', async (req, res) => {
       : (chat ? chat.messages : []);
     
     const context = contextMessages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    // --- Custom prompt for Indian legal chatbot, markdown, bold headings, points ---
-    const prompt = `You are a professional legal assistant specializing in Indian law.\n\nBased on the following conversation, answer the user's latest question in clear, concise, and legally accurate language.\n\n- Always answer as per Indian law, regardless of the topic (e.g., divorce, public decency, criminal law, etc.).\n- Use bold headings (with **, e.g., **Heading:**) for each section.\n- Present all steps, requirements, or lists as bullet points or numbered points, each on a new line.\n- Remove any unnecessary markdown or asterisks except for headings.\n- Do not include any generic chatbot instructions or example prompts.\n- Always end with: _Note: This is not legal advice. Please consult a qualified advocate in your jurisdiction for specific guidance._\n\nConversation:\n${context}\n\nAssistant:`;    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const prompt = `You are a professional legal assistant specializing in Indian law.\n\nBased on the following conversation, answer the user's latest question in clear, concise, and legally accurate language.\n\n- Always answer as per Indian law, regardless of the topic (e.g., divorce, public decency, criminal law, etc.).\n- Use bold headings (with **, e.g., **Heading:**) for each section.\n- Present all steps, requirements, or lists as bullet points or numbered points, each on a new line.\n- Remove any unnecessary markdown or asterisks except for headings.\n- Do not include any generic chatbot instructions or example prompts.\n- Always end with: _Note: This is not legal advice. Please consult a qualified advocate in your jurisdiction for specific guidance._\n\nConversation:\n${context}\n\nAssistant:`;
+    const result = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+    });
+    const text = result.choices[0]?.message?.content || "";
     
     // Add assistant message and save only if user is authenticated
     if (chat && req.user) {

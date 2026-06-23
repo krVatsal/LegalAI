@@ -1,19 +1,17 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatGroq } from '@langchain/groq';
 
 class LegalAnalysisService {
     constructor() {
-        this.apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+        this.apiKey = process.env.GROQ_API_KEY;
         if (!this.apiKey) {
-            throw new Error('GEMINI_API_KEY not found in environment variables');
+            throw new Error('GROQ_API_KEY not found in environment variables');
         }
         
-        this.genAI = new GoogleGenerativeAI(this.apiKey);
-        this.model = new ChatGoogleGenerativeAI({
+        this.model = new ChatGroq({
             apiKey: this.apiKey,
-            model: 'gemini-1.5-flash',
+            model: 'llama-3.3-70b-versatile',
             temperature: 0.3,
-            maxOutputTokens: 2048,
+            maxTokens: 2048,
         });
     }/**
      * Perform comprehensive legal analysis of contract text

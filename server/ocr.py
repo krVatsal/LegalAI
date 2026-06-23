@@ -8,7 +8,8 @@ from langchain_core.documents import Document
 import fitz  # PyMuPDF for PDF processing
 
 # Configure Tesseract path (update this to your Tesseract installation path)
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+tesseract_path = os.environ.get('TESSERACT_CMD', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
+pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 class OCRProcessor:
     def __init__(self):

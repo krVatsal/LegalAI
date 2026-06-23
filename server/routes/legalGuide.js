@@ -1,9 +1,9 @@
 
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 router.post('/guide', async (req, res) => {
   try {
@@ -14,10 +14,11 @@ You are a legal assistant. Explain the process of "${processName}" in India as a
 Use clear formatting and simple terms.
 `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const guide = response.text();
+    const result = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+    });
+    const guide = result.choices[0]?.message?.content || "";
 
     res.json({ guide });
   } catch (err) {
