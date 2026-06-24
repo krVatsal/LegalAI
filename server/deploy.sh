@@ -40,8 +40,8 @@ sleep 10
 # Check if services are running
 if docker-compose ps | grep -q "Up"; then
     echo "✅ Services are running successfully!"
-    echo "🌐 API available at: https://legalai-xx7y.onrender.com"
-    echo "🔍 Health check: https://legalai-xx7y.onrender.com/health"
+    echo "🌐 API available at: https://legalai-1-ete1.onrender.com"
+    echo "🔍 Health check: https://legalai-1-ete1.onrender.com/health"
     echo "📊 View logs: docker-compose logs -f"
     echo "🛑 Stop services: docker-compose down"
 else

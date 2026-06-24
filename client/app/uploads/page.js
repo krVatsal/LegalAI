@@ -24,7 +24,7 @@ export default function UploadsPage() {
       if (token) {
         try {
           console.log('Fetching from server...');
-          const response = await fetch('https://legalai-xx7y.onrender.com/api/ocr/history?page=1&limit=50', {
+          const response = await fetch('https://legalai-1-ete1.onrender.com/api/ocr/history?page=1&limit=50', {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

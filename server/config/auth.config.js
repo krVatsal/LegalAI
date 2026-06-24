@@ -3,7 +3,7 @@ export const authConfig = {
   jwtExpiration: '24h',
   googleClientID: process.env.GOOGLE_CLIENT_ID,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  googleCallbackURL: 'https://legalai-xx7y.onrender.com/api/auth/google/callback',
+  googleCallbackURL: 'https://legalai-1-ete1.onrender.com/api/auth/google/callback',
   emailService: {
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: process.env.EMAIL_PORT || 587,

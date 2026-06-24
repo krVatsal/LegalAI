@@ -21,7 +21,7 @@ export default function AuthCallback() {
       // Set token as cookie for server auth
       document.cookie = `token=${token}; path=/;`;
       // Fetch user data
-      fetch('https://legalai-xx7y.onrender.com/api/auth/me', {
+      fetch('https://legalai-1-ete1.onrender.com/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
