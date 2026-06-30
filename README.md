@@ -13,7 +13,7 @@
 Legal documents are notoriously lengthy, dense, and rich in specialized jargon, making comprehension a significant challenge. Our platform integrates a robust AI stack combining Gemini, LangChain, and DuckDuckGo to deliver end-to-end legal intelligence.
 
 ---
-
+###LIVE: https://legal-ai-zeta-five.vercel.app/
 ## 🏆 Key Features
 - **🔐 Login & Access:** Secure Google/OTP authentication.
 - **📄 Contract Upload:** Upload contracts (PDF/images) for instant analysis.
